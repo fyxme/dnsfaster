@@ -15,6 +15,8 @@ import (
 )
 
 const SEND_RESULTS = "SeNd ReSuLtS"
+const WORKER_EXIT = "~"
+const WORKER_NOTIFY_EXIT = "!~"
 const SEPARATOR = "-------------------------------------------------------"
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -42,8 +44,8 @@ func getDNSList(fp string) ([]string, error) {
     return lines, nil
 }
 
-func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, base_domain string) {
-    var rtts []float64
+func workerResolverChecker(dc chan string, receiver chan *Result, base_domain string) {
+    //var rtts []float64
     var domain string
 
     c := dns.Client{}
@@ -51,10 +53,15 @@ func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, b
 
     for {
         resolver, ok := <-dc
-        if !ok {
+        if !ok || resolver == WORKER_EXIT {
             break
         }
 
+        if resolver == WORKER_NOTIFY_EXIT {
+            receiver<-nil
+            break
+        }
+        /*
         if resolver == SEND_RESULTS {
             for _, rtt := range rtts {
                 if rtt != 0 {
@@ -64,17 +71,23 @@ func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, b
             rtts = nil // delete the slice
             <-resume // wait to resume
             continue
-        }
+        }*/
 
         domain = strings.Join([]string{RandStringBytes(5), ".", base_domain}, "")
 
         m.SetQuestion(domain + ".", dns.TypeA)
         _, rtt, err := c.Exchange(&m, resolver+":53")
+        result := new(Result)
+        result.dns = resolver
         if err == nil {
-            rtts = append(rtts, float64(rtt/time.Microsecond))
+            result.rtt = float64(rtt/time.Microsecond)
+            // TODO: send result to receiverService
+            //rtts = append(rtts, float64(rtt/time.Microsecond))
         } else {
-            rtts = append(rtts, -1) // needed so all tests have a value
+            result.rtt = -1
+            //rtts = append(rtts, -1) // needed so all tests have a value
         }
+        receiver<-result
     }
 
 }
@@ -89,7 +102,52 @@ func printHeader(num_workers int, num_tests int, test_domain string, filepath st
     fmt.Println(SEPARATOR)
 }
 
+type Result struct {
+    dns string
+    rtt float64
+}
 
+type ResultStats struct {
+    dns string
+    rtt float64
+    succ int
+    fail int
+}
+
+func receiverService(rcv chan *Result, done chan bool) {
+    results := make(map[string]*ResultStats)
+
+    for {
+        result, ok := <-rcv
+        if !ok || result == nil{
+            break
+        }
+
+        _, prs := results[result.dns]
+        if !prs {
+            results[result.dns] = new(ResultStats)
+        }
+
+        cur := results[result.dns]
+
+        if result.rtt == -1 {
+            cur.fail++
+            continue
+        }
+
+        cur.rtt += result.rtt
+        cur.succ++
+    }
+
+    for _, r := range results {
+        if r.rtt != 0 {
+            r.rtt = r.rtt / float64(r.succ)
+        }
+        num_tests := r.succ + r.fail
+        fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", r.dns, int(r.rtt), r.succ*100/num_tests, r.succ, r.fail)
+    }
+    done<-true
+}
 
 func distributorService(num_workers int, num_tests int, test_domain string, filepath string) {
 
@@ -103,19 +161,24 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         return
     }
 
-    ret := make(chan float64)
-    dc := make(chan string)
-    resume := make(chan bool)
+    //ret := make(chan float64)
+    dc := make(chan string, 1000)
+    //resume := make(chan bool)
+
+    receiver := make(chan *Result, 100)
+    rcvDone := make(chan bool)
+
+    go receiverService(receiver, rcvDone)
 
     for i := 0; i < num_workers; i++ {
-        go workerResolverChecker(dc, resume, ret, test_domain)
+        go workerResolverChecker(dc, receiver, test_domain)
     }
 
     for _, dns := range resolvers {
         for i := 0; i < num_tests; i++ {
             dc<-dns
         }
-
+        /*
         for i := 0; i < num_workers; i++ {
             dc<-SEND_RESULTS
         }
@@ -133,14 +196,25 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         for i := 0; i < num_workers; i++ {
             resume<-true
         }
+        
         if (avg != 0) {
             avg = avg / float64(j)
         }
 
         fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", dns, int(avg), j*100/num_tests, j, num_tests - j)
         avg = 0
+        */
     }
-    close(dc)
+
+    for i := 0; i < num_workers; i++ {
+        if i+1 == num_workers { // last worker notifies receiver
+            dc<-WORKER_NOTIFY_EXIT
+            continue
+        }
+        dc<-WORKER_EXIT
+    }
+
+    <-rcvDone
 }
 
 func main() {
