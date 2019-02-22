@@ -58,12 +58,21 @@ func getDNSList(fp string) ([]string, error) {
 }
 
 func printHeader(num_workers int, num_tests int, test_domain string, filepath string) {
-    fmt.Println("Starting dnsfaster:")
+    fmt.Println(`
+           _            __          _            
+          | |          / _|        | |           
+        __| |_ __  ___| |_ __ _ ___| |_ ___ _ __ 
+       / _' | '_ \/ __|  _/ _' / __| __/ _ \ '__|
+      | (_| | | | \__ \ || (_| \__ \ ||  __/ |   
+       \__,_|_| |_|___/_| \__,_|___/\__\___|_|   
+
+    `)
+
     fmt.Println(SEPARATOR)
-    fmt.Printf("| %d threads | %d tests | domain: %s | in file: %s |\n",
-        num_workers, num_tests, test_domain, filepath)
+    fmt.Printf("| %7d threads | domain  : %23s |\n", num_workers, test_domain)
+    fmt.Printf("| %7d tests   | in file : %23s |\n", num_tests, filepath)
     fmt.Println(SEPARATOR)
-    fmt.Println("|              ip | avg micros | Rate |  Succ |  Fail | Action")
+    fmt.Println("|              ip | avg micros | Rate |  Succ |  Fail |")
     fmt.Println(SEPARATOR)
 }
 
@@ -130,7 +139,7 @@ func receiverService(rcv chan *Result, done chan bool, num_tests int) {
             fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
         }
     }
-
+    fmt.Println(SEPARATOR)
     done<-true
 }
 
