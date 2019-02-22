@@ -14,11 +14,24 @@ import (
     "strings"
 )
 
-const SEND_RESULTS = "SeNd ReSuLtS"
 const WORKER_EXIT = "~"
 const WORKER_NOTIFY_EXIT = "!~"
+
 const SEPARATOR = "-------------------------------------------------------"
+
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+type Result struct {
+    dns string
+    rtt float64
+}
+
+type ResultStats struct {
+    dns string
+    rtt float64
+    succ int
+    fail int
+}
 
 func RandStringBytes(n int) string {
     b := make([]byte, n)
@@ -44,8 +57,17 @@ func getDNSList(fp string) ([]string, error) {
     return lines, nil
 }
 
+func printHeader(num_workers int, num_tests int, test_domain string, filepath string) {
+    fmt.Println("Starting dnsfaster:")
+    fmt.Println(SEPARATOR)
+    fmt.Printf("| %d threads | %d tests | domain: %s | in file: %s |\n",
+        num_workers, num_tests, test_domain, filepath)
+    fmt.Println(SEPARATOR)
+    fmt.Println("|              ip | avg micros | Rate |  Succ |  Fail | Action")
+    fmt.Println(SEPARATOR)
+}
+
 func workerResolverChecker(dc chan string, receiver chan *Result, base_domain string) {
-    //var rtts []float64
     var domain string
 
     c := dns.Client{}
@@ -61,17 +83,6 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
             receiver<-nil
             break
         }
-        /*
-        if resolver == SEND_RESULTS {
-            for _, rtt := range rtts {
-                if rtt != 0 {
-                    ret<-rtt
-                }
-            }
-            rtts = nil // delete the slice
-            <-resume // wait to resume
-            continue
-        }*/
 
         domain = strings.Join([]string{RandStringBytes(5), ".", base_domain}, "")
 
@@ -81,37 +92,11 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
         result.dns = resolver
         if err == nil {
             result.rtt = float64(rtt/time.Microsecond)
-            // TODO: send result to receiverService
-            //rtts = append(rtts, float64(rtt/time.Microsecond))
         } else {
             result.rtt = -1
-            //rtts = append(rtts, -1) // needed so all tests have a value
         }
         receiver<-result
     }
-
-}
-
-func printHeader(num_workers int, num_tests int, test_domain string, filepath string) {
-    fmt.Println("Starting dnsfaster:")
-    fmt.Println(SEPARATOR)
-    fmt.Printf("| %d threads | %d tests | domain: %s | in file: %s |\n",
-        num_workers, num_tests, test_domain, filepath)
-    fmt.Println(SEPARATOR)
-    fmt.Println("|              ip | avg micros | Rate |  Succ |  Fail | Action")
-    fmt.Println(SEPARATOR)
-}
-
-type Result struct {
-    dns string
-    rtt float64
-}
-
-type ResultStats struct {
-    dns string
-    rtt float64
-    succ int
-    fail int
 }
 
 func receiverService(rcv chan *Result, done chan bool) {
@@ -126,6 +111,7 @@ func receiverService(rcv chan *Result, done chan bool) {
         _, prs := results[result.dns]
         if !prs {
             results[result.dns] = new(ResultStats)
+            results[result.dns].dns = result.dns
         }
 
         cur := results[result.dns]
@@ -161,9 +147,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         return
     }
 
-    //ret := make(chan float64)
     dc := make(chan string, 1000)
-    //resume := make(chan bool)
 
     receiver := make(chan *Result, 100)
     rcvDone := make(chan bool)
@@ -178,32 +162,6 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         for i := 0; i < num_tests; i++ {
             dc<-dns
         }
-        /*
-        for i := 0; i < num_workers; i++ {
-            dc<-SEND_RESULTS
-        }
-
-        var j int
-        var avg float64
-        for i := 0; i < num_tests; i++ {
-            tmp := <-ret
-            if tmp != -1 {
-                avg += tmp
-                j++
-            }
-        }
-
-        for i := 0; i < num_workers; i++ {
-            resume<-true
-        }
-        
-        if (avg != 0) {
-            avg = avg / float64(j)
-        }
-
-        fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", dns, int(avg), j*100/num_tests, j, num_tests - j)
-        avg = 0
-        */
     }
 
     for i := 0; i < num_workers; i++ {
