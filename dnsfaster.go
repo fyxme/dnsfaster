@@ -15,6 +15,7 @@ import (
 )
 
 const SEND_RESULTS = "SeNd ReSuLtS"
+const SEPARATOR = "-------------------------------------------------------"
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStringBytes(n int) string {
@@ -70,7 +71,7 @@ func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, b
         m.SetQuestion(domain + ".", dns.TypeA)
         _, rtt, err := c.Exchange(&m, resolver+":53")
         if err == nil {
-            rtts = append(rtts, float64(rtt/time.Nanosecond))
+            rtts = append(rtts, float64(rtt/time.Microsecond))
         } else {
             rtts = append(rtts, -1) // needed so all tests have a value
         }
@@ -78,15 +79,23 @@ func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, b
 
 }
 
+func printHeader(num_workers int, num_tests int, test_domain string, filepath string) {
+    fmt.Println("Starting dnsfaster:")
+    fmt.Println(SEPARATOR)
+    fmt.Printf("| %d threads | %d tests | domain: %s | in file: %s |\n",
+        num_workers, num_tests, test_domain, filepath)
+    fmt.Println(SEPARATOR)
+    fmt.Println("|              ip | avg micros | Rate |  Succ |  Fail | Action")
+    fmt.Println(SEPARATOR)
+}
+
+
 
 func distributorService(num_workers int, num_tests int, test_domain string, filepath string) {
 
     rand.Seed(time.Now().UnixNano())
 
-    fmt.Printf("Starting dnsfaster:\n| %d threads | %d tests | test domain: %s | input file: %s |\n", 
-        num_workers, num_tests, test_domain, filepath)
-
-    fmt.Println("--------------")
+    printHeader(num_workers, num_tests, test_domain, filepath)
 
     resolvers, err := getDNSList(filepath)
     if err != nil {
@@ -98,14 +107,12 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
     dc := make(chan string)
     resume := make(chan bool)
 
-    var avg float64
     for i := 0; i < num_workers; i++ {
         go workerResolverChecker(dc, resume, ret, test_domain)
     }
 
     for _, dns := range resolvers {
         for i := 0; i < num_tests; i++ {
-            //dc<-fmt.Sprintf("%s.%s", RandStringBytes(5), test_domain)
             dc<-dns
         }
 
@@ -114,6 +121,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         }
 
         var j int
+        var avg float64
         for i := 0; i < num_tests; i++ {
             tmp := <-ret
             if tmp != -1 {
@@ -125,11 +133,11 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
         for i := 0; i < num_workers; i++ {
             resume<-true
         }
+        if (avg != 0) {
+            avg = avg / float64(j)
+        }
 
-        avg = avg / float64(j)
-        fmt.Printf("Final: %15s | %v\n", dns, avg)
-        fmt.Printf("Test stats: [%d%%] %d Returned, %d Failed\n", j*100/num_tests, j, num_tests - j)
-        fmt.Println("--------------")
+        fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", dns, int(avg), j*100/num_tests, j, num_tests - j)
         avg = 0
     }
     close(dc)
