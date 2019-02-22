@@ -149,7 +149,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
 
     dc := make(chan string, 1000)
 
-    receiver := make(chan *Result, 100)
+    receiver := make(chan *Result, 250)
     rcvDone := make(chan bool)
 
     go receiverService(receiver, rcvDone)
