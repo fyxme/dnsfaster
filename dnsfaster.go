@@ -1,5 +1,7 @@
 package main
 
+// https://stackoverflow.com/questions/36417199/how-to-broadcast-message-using-channel
+
 import (
     "bufio"
     "fmt"
@@ -9,8 +11,10 @@ import (
     "github.com/miekg/dns"
     "time"
     "math/rand"
+    "strings"
 )
 
+const SEND_RESULTS = "SeNd ReSuLtS"
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStringBytes(n int) string {
@@ -37,16 +41,31 @@ func getDNSList(fp string) ([]string, error) {
     return lines, nil
 }
 
-func workerResolverChecker(dc chan string, ret chan float64, resolver string) {
+func workerResolverChecker(dc chan string, resume chan bool, ret chan float64, base_domain string) {
     var rtts []float64
+    var domain string
+
+    c := dns.Client{}
+    m := dns.Msg{}
 
     for {
-        domain, ok := <-dc
+        resolver, ok := <-dc
         if !ok {
             break
         }
-        c := dns.Client{}
-        m := dns.Msg{}
+
+        if resolver == SEND_RESULTS {
+            for _, rtt := range rtts {
+                if rtt != 0 {
+                    ret<-rtt
+                }
+            }
+            rtts = nil // delete the slice
+            <-resume // wait to resume
+            continue
+        }
+
+        domain = strings.Join([]string{RandStringBytes(5), ".", base_domain}, "")
 
         m.SetQuestion(domain + ".", dns.TypeA)
         _, rtt, err := c.Exchange(&m, resolver+":53")
@@ -57,11 +76,6 @@ func workerResolverChecker(dc chan string, ret chan float64, resolver string) {
         }
     }
 
-    for _, rtt := range rtts {
-        if rtt != 0 {
-            ret<-rtt
-        }
-    }
 }
 
 
@@ -69,8 +83,10 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
 
     rand.Seed(time.Now().UnixNano())
 
-    fmt.Printf("Starting dnsfaster:\n| %d threads | %d tests | test domain: %s | input file: %s |", 
+    fmt.Printf("Starting dnsfaster:\n| %d threads | %d tests | test domain: %s | input file: %s |\n", 
         num_workers, num_tests, test_domain, filepath)
+
+    fmt.Println("--------------")
 
     resolvers, err := getDNSList(filepath)
     if err != nil {
@@ -79,17 +95,24 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
     }
 
     ret := make(chan float64)
+    dc := make(chan string)
+    resume := make(chan bool)
+
+    var avg float64
+    for i := 0; i < num_workers; i++ {
+        go workerResolverChecker(dc, resume, ret, test_domain)
+    }
+
     for _, dns := range resolvers {
-        dc := make(chan string)
-        var avg float64
-        for i := 0; i < num_workers; i++ {
-            go workerResolverChecker(dc, ret, dns)
-        }
         for i := 0; i < num_tests; i++ {
-            dc<-fmt.Sprintf("%s.%s", RandStringBytes(5), test_domain)
+            //dc<-fmt.Sprintf("%s.%s", RandStringBytes(5), test_domain)
+            dc<-dns
         }
 
-        close(dc)
+        for i := 0; i < num_workers; i++ {
+            dc<-SEND_RESULTS
+        }
+
         var j int
         for i := 0; i < num_tests; i++ {
             tmp := <-ret
@@ -98,10 +121,18 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
                 j++
             }
         }
+
+        for i := 0; i < num_workers; i++ {
+            resume<-true
+        }
+
         avg = avg / float64(j)
-        fmt.Println("Final: ", dns, avg)
-        fmt.Println("Test stats: [%d%%] %d Returned, %d Failed\n", j*100/num_tests, j, num_tests - j)
+        fmt.Printf("Final: %15s | %v\n", dns, avg)
+        fmt.Printf("Test stats: [%d%%] %d Returned, %d Failed\n", j*100/num_tests, j, num_tests - j)
+        fmt.Println("--------------")
+        avg = 0
     }
+    close(dc)
 }
 
 func main() {
