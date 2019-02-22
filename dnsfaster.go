@@ -99,7 +99,7 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
     }
 }
 
-func receiverService(rcv chan *Result, done chan bool) {
+func receiverService(rcv chan *Result, done chan bool, num_tests int) {
     results := make(map[string]*ResultStats)
 
     for {
@@ -118,20 +118,19 @@ func receiverService(rcv chan *Result, done chan bool) {
 
         if result.rtt == -1 {
             cur.fail++
-            continue
+        } else {
+            cur.rtt += result.rtt
+            cur.succ++
         }
 
-        cur.rtt += result.rtt
-        cur.succ++
+        if cur.succ + cur.fail == num_tests {
+            if cur.rtt != 0 {
+                cur.rtt = cur.rtt / float64(cur.succ)
+            }
+            fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
+        }
     }
 
-    for _, r := range results {
-        if r.rtt != 0 {
-            r.rtt = r.rtt / float64(r.succ)
-        }
-        num_tests := r.succ + r.fail
-        fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", r.dns, int(r.rtt), r.succ*100/num_tests, r.succ, r.fail)
-    }
     done<-true
 }
 
@@ -152,7 +151,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
     receiver := make(chan *Result, 250)
     rcvDone := make(chan bool)
 
-    go receiverService(receiver, rcvDone)
+    go receiverService(receiver, rcvDone, num_tests)
 
     for i := 0; i < num_workers; i++ {
         go workerResolverChecker(dc, receiver, test_domain)

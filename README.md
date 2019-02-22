@@ -19,5 +19,6 @@ go build github.com/miekg/dns
 
 # Usage
 
-Coming soon..
+`usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain>`
 
+Flags and options coming soon..
