@@ -108,9 +108,22 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
     }
 }
 
-func receiverService(rcv chan *Result, done chan bool, num_tests int) {
+func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp string) {
     results := make(map[string]*ResultStats)
 
+    file, err := os.Open(outfp)
+    if err != nil {
+        fmt.Println("[!] Can't open file: ", outfp)
+        return
+    }
+
+    defer file.Close()
+
+    w := bufio.NewWriter(file)
+
+    if _, err := w.WriteString("ip,avg rtt,success rate,success,failure\n"); err != nil {
+        panic(err)
+    }
     for {
         result, ok := <-rcv
         if !ok || result == nil{
@@ -137,19 +150,26 @@ func receiverService(rcv chan *Result, done chan bool, num_tests int) {
                 cur.rtt = cur.rtt / float64(cur.succ)
             }
             fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
+            s := fmt.Sprintf("%s,%v,%d,%d,%d\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
+            if _, err := w.WriteString(s); err != nil {
+                panic(err)
+            }
         }
+    }
+    if err := w.Flush(); err != nil {
+        panic(err)
     }
     fmt.Println(SEPARATOR)
     done<-true
 }
 
-func distributorService(num_workers int, num_tests int, test_domain string, filepath string) {
+func distributorService(num_workers int, num_tests int, test_domain string, infp string, outfp string) {
 
     rand.Seed(time.Now().UnixNano())
 
-    printHeader(num_workers, num_tests, test_domain, filepath)
+    printHeader(num_workers, num_tests, test_domain, infp)
 
-    resolvers, err := getDNSList(filepath)
+    resolvers, err := getDNSList(infp)
     if err != nil {
         fmt.Println(err)
         return
@@ -160,7 +180,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
     receiver := make(chan *Result, 250)
     rcvDone := make(chan bool)
 
-    go receiverService(receiver, rcvDone, num_tests)
+    go receiverService(receiver, rcvDone, num_tests, outfp)
 
     for i := 0; i < num_workers; i++ {
         go workerResolverChecker(dc, receiver, test_domain)
@@ -184,8 +204,8 @@ func distributorService(num_workers int, num_tests int, test_domain string, file
 }
 
 func main() {
-    if len(os.Args) < 5 {
-        fmt.Println("usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain>")
+    if len(os.Args) < 6 {
+        fmt.Println("usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain> <out filepath>")
         return
     }
     filepath := os.Args[1]
@@ -204,5 +224,7 @@ func main() {
 
     domain := os.Args[4]
 
-    distributorService(num_workers, num_tests, domain, filepath)
+    outfp  := os.Args[5]
+
+    distributorService(num_workers, num_tests, domain, filepath, outfp)
 }
