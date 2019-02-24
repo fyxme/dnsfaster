@@ -111,7 +111,7 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
 func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp string) {
     results := make(map[string]*ResultStats)
 
-    file, err := os.Open(outfp)
+    file, err := os.OpenFile(outfp, os.O_WRONLY | os.O_CREATE, 0666)
     if err != nil {
         fmt.Println("[!] Can't open file: ", outfp)
         return
