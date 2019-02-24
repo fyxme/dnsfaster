@@ -79,8 +79,6 @@ func printHeader(num_workers int, num_tests int, test_domain string, filepath st
 func workerResolverChecker(dc chan string, receiver chan *Result, base_domain string) {
     var domain string
 
-    c := dns.Client{}
-    m := dns.Msg{}
 
     for {
         resolver, ok := <-dc
@@ -92,6 +90,9 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
             receiver<-nil
             break
         }
+
+        c := dns.Client{}
+        m := dns.Msg{}
 
         domain = strings.Join([]string{RandStringBytes(5), ".", base_domain}, "")
 
@@ -151,17 +152,18 @@ func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp stri
             }
             fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
 
-            if curr.succ != num_tests { // only keep 100% success rate
+            if cur.succ != num_tests { // only keep 100% success rate
                 s := fmt.Sprintf("%s,%v,%d,%d,%d\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
-            }
-
-            if _, err := w.WriteString(s); err != nil {
-                panic(err)
+                if _, err := w.WriteString(s); err != nil {
+                    fmt.Println(err)
+                    os.Exit(1)
+                }
             }
         }
     }
     if err := w.Flush(); err != nil {
-        panic(err)
+        fmt.Println(err)
+        os.Exit(1)
     }
     fmt.Println(SEPARATOR)
     done<-true
