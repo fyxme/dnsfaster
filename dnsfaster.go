@@ -150,7 +150,11 @@ func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp stri
                 cur.rtt = cur.rtt / float64(cur.succ)
             }
             fmt.Printf("| %15s | %10v | %3d%% | %5d | %5d |\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
-            s := fmt.Sprintf("%s,%v,%d,%d,%d\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
+
+            if curr.succ != num_tests { // only keep 100% success rate
+                s := fmt.Sprintf("%s,%v,%d,%d,%d\n", cur.dns, int(cur.rtt), cur.succ*100/num_tests, cur.succ, cur.fail)
+            }
+
             if _, err := w.WriteString(s); err != nil {
                 panic(err)
             }
