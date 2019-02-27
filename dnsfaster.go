@@ -33,6 +33,12 @@ type ResultStats struct {
     fail int
 }
 
+type TestInfo struct {
+    domain string
+    dns string
+    rtt float64
+}
+
 func RandStringBytes(n int) string {
     b := make([]byte, n)
     for i := range b {
@@ -76,17 +82,14 @@ func printHeader(num_workers int, num_tests int, test_domain string, filepath st
     fmt.Println(SEPARATOR)
 }
 
-func workerResolverChecker(dc chan string, receiver chan *Result, base_domain string) {
-    var domain string
-
-
+func workerResolverChecker(dc chan *TestInfo, receiver chan *TestInfo, base_domain string) {
     for {
-        resolver, ok := <-dc
-        if !ok || resolver == WORKER_EXIT {
+        test, ok := <-dc
+        if !ok || test.dns == WORKER_EXIT {
             break
         }
 
-        if resolver == WORKER_NOTIFY_EXIT {
+        if test.dns == WORKER_NOTIFY_EXIT {
             receiver<-nil
             break
         }
@@ -94,22 +97,17 @@ func workerResolverChecker(dc chan string, receiver chan *Result, base_domain st
         c := dns.Client{}
         m := dns.Msg{}
 
-        domain = strings.Join([]string{RandStringBytes(5), ".", base_domain}, "")
-
-        m.SetQuestion(domain + ".", dns.TypeA)
-        _, rtt, err := c.Exchange(&m, resolver+":53")
-        result := new(Result)
-        result.dns = resolver
-        if err == nil {
-            result.rtt = float64(rtt/time.Microsecond)
-        } else {
-            result.rtt = -1
+        m.SetQuestion(test.domain + ".", dns.TypeA)
+        r, rtt, err := c.Exchange(&m, test.dns+":53")
+        if err == nil && r != nil { // the domains don't exist so the response should be null
+            test.rtt = float64(rtt/time.Microsecond)
         }
-        receiver<-result
+        receiver<-test
     }
 }
 
-func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp string) {
+
+func receiverService(rcv chan *TestInfo, done chan bool, num_tests int, outfp string) {
     results := make(map[string]*ResultStats)
 
     file, err := os.OpenFile(outfp, os.O_WRONLY | os.O_CREATE, 0666)
@@ -125,6 +123,7 @@ func receiverService(rcv chan *Result, done chan bool, num_tests int, outfp stri
     if _, err := w.WriteString("ip,avg rtt,success rate,success,failure\n"); err != nil {
         panic(err)
     }
+
     for {
         result, ok := <-rcv
         if !ok || result == nil{
@@ -181,9 +180,15 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
         return
     }
 
-    dc := make(chan string, 1000)
+    // pregenerate test cases
+    var domains []string
+    for i := 0; i < num_tests; i++ {
+        domains = append(domains, strings.Join([]string{RandStringBytes(5), ".", test_domain}, ""))
+    }
 
-    receiver := make(chan *Result, 250)
+    dc := make(chan *TestInfo, 1000)
+    receiver := make(chan *TestInfo, 250)
+
     rcvDone := make(chan bool)
 
     go receiverService(receiver, rcvDone, num_tests, outfp)
@@ -191,19 +196,25 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
     for i := 0; i < num_workers; i++ {
         go workerResolverChecker(dc, receiver, test_domain)
     }
-
+    
     for _, dns := range resolvers {
         for i := 0; i < num_tests; i++ {
-            dc<-dns
+            test := new(TestInfo)
+            test.dns = dns
+            test.domain = domains[i]
+            test.rtt = -1
+            dc<-test
         }
     }
 
     for i := 0; i < num_workers; i++ {
+        test := new(TestInfo)
         if i+1 == num_workers { // last worker notifies receiver
-            dc<-WORKER_NOTIFY_EXIT
-            continue
+            test.dns = WORKER_NOTIFY_EXIT
+        } else {
+            test.dns = WORKER_EXIT
         }
-        dc<-WORKER_EXIT
+        dc<-test
     }
 
     <-rcvDone
