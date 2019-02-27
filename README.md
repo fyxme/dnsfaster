@@ -22,3 +22,7 @@ go build github.com/miekg/dns
 `usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain> <out filepath>`
 
 Flags and options coming soon..
+
+# Limitations
+
+Does not work for ipv6 yet.
