@@ -65,12 +65,12 @@ func getDNSList(fp string) ([]string, error) {
 
 func printHeader(num_workers int, num_tests int, test_domain string, filepath string) {
     fmt.Println(`
-           _            __          _            
-          | |          / _|        | |           
-        __| |_ __  ___| |_ __ _ ___| |_ ___ _ __ 
+           _            __          _
+          | |          / _|        | |
+        __| |_ __  ___| |_ __ _ ___| |_ ___ _ __
        / _' | '_ \/ __|  _/ _' / __| __/ _ \ '__|
-      | (_| | | | \__ \ || (_| \__ \ ||  __/ |   
-       \__,_|_| |_|___/_| \__,_|___/\__\___|_|   
+      | (_| | | | \__ \ || (_| \__ \ ||  __/ |
+       \__,_|_| |_|___/_| \__,_|___/\__\___|_|
 
     `)
 
@@ -98,8 +98,10 @@ func workerResolverChecker(dc chan *TestInfo, receiver chan *TestInfo, base_doma
         m := dns.Msg{}
 
         m.SetQuestion(test.domain + ".", dns.TypeA)
-        r, rtt, err := c.Exchange(&m, test.dns+":53")
-        if err == nil && r != nil { // the domains don't exist so the response should be null
+        r, rtt, err := c.Exchange(&m, test.dns + ":53")
+
+        // make sure the server responds and returns no entry
+        if err == nil && r != nil && r.Rcode == dns.RcodeNameError {
             test.rtt = float64(rtt/time.Microsecond)
         }
         receiver<-test
@@ -197,7 +199,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
     for i := 0; i < num_workers; i++ {
         go workerResolverChecker(dc, receiver, test_domain)
     }
-    
+
     for _, dns := range resolvers {
         for i := 0; i < num_tests; i++ {
             test := new(TestInfo)
