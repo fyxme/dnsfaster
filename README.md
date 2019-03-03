@@ -25,4 +25,5 @@ Flags and options coming soon..
 
 # Limitations
 
-Does not work for ipv6 yet.
+- Does not work for ipv6 yet.
+- Will not work if you provide a test domain which responds to all subdomains (wildcard dns entry - *.domain.com)
