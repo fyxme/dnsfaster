@@ -7,6 +7,10 @@ dnsfaster allows you to test different DNS servers to check which one is the fas
 It requests multiple random A records from the specified DNS.
 To generate the random A record, it uses a valid domain and prepends an invalid subdomain.
 
+# TODO
+- Add test success rate threshold flag (> x%)
+- clean up codebase
+
 # Requirements
 
 - DNS library : `https://github.com/miekg/dns`
@@ -26,4 +30,4 @@ Flags and options coming soon..
 # Limitations
 
 - Does not work for ipv6 yet.
-- Will not work if you provide a test domain which responds to all subdomains (wildcard dns entry - *.domain.com)
+- Will not work if you provide a test domain which responds to all subdomains (wildcard dns entry - \*.domain.com)
