@@ -186,7 +186,7 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
     // pregenerate test cases
     var domains []string
     for i := 0; i < num_tests; i++ {
-        domains = append(domains, strings.Join([]string{RandStringBytes(5), ".", test_domain}, ""))
+        domains = append(domains, strings.Join([]string{RandStringBytes(8), ".", test_domain}, ""))
     }
 
     dc := make(chan *TestInfo, 1000)
@@ -200,8 +200,8 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
         go workerResolverChecker(dc, receiver, test_domain)
     }
 
-    for _, dns := range resolvers {
-        for i := 0; i < num_tests; i++ {
+    for i := 0; i < num_tests; i++ {
+        for _, dns := range resolvers {
             test := new(TestInfo)
             test.dns = dns
             test.domain = domains[i]
