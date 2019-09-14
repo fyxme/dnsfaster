@@ -1,6 +1,6 @@
-# dnsfaster
+**_[THIS PROJECT HAS MOVED: click me to be redirected](https://gitlab.com/jules.rigaudie/dnsfaster)_**
 
-_[THIS PROJECT HAS MOVED HERE](https://gitlab.com/jules.rigaudie/dnsfaster)_
+# dnsfaster
 
 dnsfaster allows you to test different DNS servers to check which one is the fastest for your needs.
 
