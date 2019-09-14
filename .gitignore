@@ -2,3 +2,5 @@ nameservers.txt
 timed.txt
 sorted.txt
 errors.txt
+.DS_Store
+dnsfaster
