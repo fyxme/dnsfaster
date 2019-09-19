@@ -1,7 +1,5 @@
 package main
 
-// https://stackoverflow.com/questions/36417199/how-to-broadcast-message-using-channel
-
 import (
     "bufio"
     "fmt"
