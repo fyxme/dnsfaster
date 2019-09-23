@@ -98,11 +98,23 @@ go build dnsfaster.go
 
 # Usage
 
-`usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain> <out filepath>`
+```
+$ ./dnsfaster -h
+Usage of ./dnsfaster:
+  -domain string
+    	Domain name to test against (default "example.com")
+  -in string
+    	The input filepath
+  -out string
+    	The output file
+  -test int
+    	Number of tests per dns server (default 100)
+  -workers int
+    	Number of workers (default 10)
+```
 
 Look at `run.sh` for an example command
 
-Flags and options coming soon..
 
 # Limitations
 
@@ -111,9 +123,9 @@ Flags and options coming soon..
 
 # TODO
 
-- add flags and options
 - add warning when test domain is a wildcard domain
 - implement ipv6
 - Add test success rate threshold flag (> x%)
 - clean up codebase
 - silent mode
+- add tests
