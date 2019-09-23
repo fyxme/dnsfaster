@@ -28,7 +28,7 @@ full command: `./dnsfaster test-input/10.txt 100 100 "example.com" out`
 dnsfaster requests multiple random A records from the specified DNS servers.
 To generate the random A record, it uses a valid domain and prepends an invalid subdomain.
 
-## Why should you test the dns servers you use?
+## WIP: Why should you test the dns servers you use?
 
 To answer this question we compared efficiency and reliability of masscan ("A high-performance DNS stub resolver for bulk lookups and reconnaissance (subdomain enumeration)") using the best dns servers vs random dns servers.
 
@@ -56,7 +56,7 @@ We tested massdns with the best resolvers vs using random resolvers and varied t
 .....
 .....
 .....
-//TODO HERE
+//WIP
 .....
 .....
 .....
@@ -116,4 +116,4 @@ Flags and options coming soon..
 - implement ipv6
 - Add test success rate threshold flag (> x%)
 - clean up codebase
-
+- silent mode
