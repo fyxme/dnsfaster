@@ -4,12 +4,12 @@ import (
     "bufio"
     "fmt"
     "os"
-    "strconv"
     "errors"
     "github.com/miekg/dns"
     "time"
     "math/rand"
     "strings"
+    "flag"
 )
 
 const WORKER_EXIT = "~"
@@ -110,6 +110,8 @@ func workerResolverChecker(dc chan *TestInfo, receiver chan *TestInfo, base_doma
 func receiverService(rcv chan *TestInfo, done chan bool, num_tests int, outfp string) {
     results := make(map[string]*ResultStats)
 
+    defer func() { done<-true }() // close the channel once done
+
     file, err := os.OpenFile(outfp, os.O_WRONLY | os.O_CREATE, 0666)
     if err != nil {
         fmt.Println("[!] Can't open file: ", outfp)
@@ -166,7 +168,6 @@ func receiverService(rcv chan *TestInfo, done chan bool, num_tests int, outfp st
         os.Exit(1)
     }
     fmt.Println(SEPARATOR)
-    done<-true
 }
 
 func distributorService(num_workers int, num_tests int, test_domain string, infp string, outfp string) {
@@ -222,27 +223,23 @@ func distributorService(num_workers int, num_tests int, test_domain string, infp
 }
 
 func main() {
-    if len(os.Args) < 6 {
-        fmt.Println("usage: ./dnsfaster <input filepath> <num_workers> <num_tests> <test domain> <out filepath>")
-        return
-    }
-    filepath := os.Args[1]
+    infp := flag.String("in", "", "The input filepath")
+    outfp  := flag.String("out", "", "The output file")
+    num_workers := flag.Int("workers", 10, "Number of workers")
+    num_tests := flag.Int("test", 100, "Number of tests per dns server")
+    domain := flag.String("domain", "example.com", "Domain name to test against")
+    flag.Parse();
 
-    num_workers, err := strconv.Atoi(os.Args[2])
-    if err != nil {
-        fmt.Println("Invalid num workers :", os.Args[2])
-        return
-    }
-
-    num_tests, err := strconv.Atoi(os.Args[3])
-    if err != nil {
-        fmt.Println("Invalid num tests :", os.Args[3])
+    // no need to test input and output file as https://stackoverflow.com/a/22483001 suggests
+    if *num_workers < 1 {
+        fmt.Fprintf(os.Stderr, "[!] Invalid number of workers: %d\n", *num_workers)
         return
     }
 
-    domain := os.Args[4]
+    if *num_tests < 1 {
+        fmt.Fprintf(os.Stderr, "[!] Invalid number of tests: %d\n", *num_tests)
+        return
+    }
 
-    outfp  := os.Args[5]
-
-    distributorService(num_workers, num_tests, domain, filepath, outfp)
+    distributorService(*num_workers, *num_tests, *domain, *infp, *outfp)
 }
