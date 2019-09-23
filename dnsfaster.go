@@ -226,7 +226,7 @@ func main() {
     infp := flag.String("in", "", "The input filepath")
     outfp  := flag.String("out", "", "The output file")
     num_workers := flag.Int("workers", 10, "Number of workers")
-    num_tests := flag.Int("test", 100, "Number of tests per dns server")
+    num_tests := flag.Int("tests", 100, "Number of tests per dns server")
     domain := flag.String("domain", "example.com", "Domain name to test against")
     flag.Parse();
 
