@@ -150,20 +150,34 @@ Failures: 0: 22.85%, 1: 24.89%, 2: 16.71%, 3: 11.93%, 4: 7.91%, 5: 5.29%, 6: 3.5
 
 ### Results
 
-Times:
+#### Times
 
-- Random 10 resolvers: 137 seconds
-- Fastest 10 resolvers: 49 seconds
+- Random 10 resolvers: `137 seconds`
+- Fastest 10 resolvers: `49 seconds`
 
 137/49 = 2.7959183673 ~= 2.8
 
-- This means that massdns is 2.8 times faster when using the fastest DNS resolvers vs using randomly selected resolvers. 
-- The first requests was successfull 52.80% of the time using the fastest and most reliable resolvers while it was only successful 22.85% of the time when using random resolvers.
-- The number of mismatched domains is 13.8 times greater when using non random resolvers.
+This means that massdns is 2.8 times faster when using the fastest DNS resolvers vs using randomly selected resolvers.
+
+#### First request error rate
+
+- Random: `Failures: 0: 22.85%, 1: 24.89%, 2: 16.71%, 3: 11.93% [...]`
+- Fastest: `Failures: 0: 52.80%, 1: 25.72%, 2: 11.68%, 3: 5.24% [...]`
+
+The first requests was successfull 52.80% of the time using the fastest and most reliable resolvers while it was only successful 22.85% of the time when using random resolvers.
+
+#### Mismatched domains
+
+- Random: `Mismatched domains: 452735 (31.16%), IDs: 0 (0.00%)`
+- Fastest: `Mismatched domains: 32783 (3.17%), IDs: 0 (0.00%)`
+
+452735 / 32783 = 13.8100539914 ~= 13.8
+
+The number of mismatched domains is 13.8 times greater when using non random resolvers.
 
 ### Conclusion
 
-Using the fastest and most reliable resolvers significantly increased the speed and efficiency of massdns. Therefore showing it is important to do so.
+Using the fastest and most reliable resolvers significantly increased the speed and efficiency of massdns. Hence, it is important to test your dns resolvers as it will increase the speed and reliability of your tools.
 
 ### Additional test notes
 
