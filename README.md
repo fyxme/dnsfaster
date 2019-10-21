@@ -13,6 +13,7 @@ Additionally, using the fastest dns server can help significantly increase your 
 ## dnsfaster in action
 
 Settings:
+
 ```
 100 workers
 100 tests
@@ -35,11 +36,13 @@ To generate the random A record, it uses a valid domain and prepends an invalid 
 - DNS library : `https://github.com/miekg/dns`
 
 To install required library run:
+
 ```
 go get
 ```
 
 To build the binary:
+
 ```
 go build dnsfaster.go
 ```
@@ -74,6 +77,7 @@ We used [https://public-dns.info](https://public-dns.info) which has a usefull r
 We then ran dnsfaster on that list and find the fastest and most reliable dns resolvers.
 
 We used the following settings:
+
 - number of tests per resolver: 100
 - number of workers: 1000
 
@@ -126,17 +130,11 @@ Current incoming rate: 274 pps, average: 20946 pps
 Current success rate: 39 pps, average: 20281 pps
 Finished total: 1000000, success: 1000000 (100.00%)
 Mismatched domains: 32783 (3.17%), IDs: 0 (0.00%)
-Failures: 0: 52.80%, 1: 25.72%, 2: 11.68%, 3: 5.24%, 4: 2.39%, 5: 1.14%, 6: 0.54%, 7: 0.24%, 8: 0.12%, 9: 0.06%, 10: 0.03%, 11: 0.02%, 12: 0.01%, 13: 0.00%, 14: 0.00%, 15: 0.00%, 16: 0.00%, 17: 0.00%, 18: 0.00%, 19: 0.00%, 20: 0.00%, 21: 0.00%, 22: 0.00%, 23: 0.00%, 24: 0.00%, 25: 0.00%, 26: 0.00%, 27: 0.00%, 28: 0.00%, 29: 0.00%, 30: 0.00%, 31: 0.00%, 32: 0.00%, 33: 0.00%, 34: 0.00%, 35: 0.00%, 36: 0.00%, 37: 0.00%, 38: 0.00%, 39: 0.00%, 40: 0.00%, 41: 0.00%, 42: 0.00%, 43: 0.00%, 44: 0.00%, 45: 0.00%, 46: 0.00%, 47: 0.00%, 48: 0.00%, 49: 0.00%, 50: 0.00%,
-Response: | Success:               | Total:
-OK:       |        14357 (  1.44%) |        14639 (  1.42%)
-NXDOMAIN: |       246914 ( 24.69%) |       269935 ( 26.14%)
-SERVFAIL: |       738729 ( 73.87%) |       748209 ( 72.45%)
-REFUSED:  |            0 (  0.00%) |            0 (  0.00%)
-FORMERR:  |            0 (  0.00%) |            0 (  0.00%)
+Failures: 0: 52.80%, 1: 25.72%, 2: 11.68%, 3: 5.24%, 4: 2.39%, 5: 1.14%, 6: 0.54%, 7: 0.24%, 8: 0.12%, 9: 0.06%, 10: 0.03%, 11: 0.02%, 12: 0.01%, 13: 0.00%, 14: 0.00%, 15: 0.00%, 16: 0.00%, 17: 0.00%, 18: 0.00%, 19: 0.00%, 20: 0.00%, 21: 0.00%, 22: 0.00% [...]
 ```
 
-
 #### random resolvers
+
 ```
 % ./tools/massdns/bin/massdns -r randoms-10.txt -t A -o S -w out in
 
@@ -147,34 +145,32 @@ Current incoming rate: 2801 pps, average: 10654 pps
 Current success rate: 13 pps, average: 7333 pps
 Finished total: 1000000, success: 1000000 (100.00%)
 Mismatched domains: 452735 (31.16%), IDs: 0 (0.00%)
-Failures: 0: 22.85%, 1: 24.89%, 2: 16.71%, 3: 11.93%, 4: 7.91%, 5: 5.29%, 6: 3.52%, 7: 2.36%, 8: 1.59%, 9: 1.05%, 10: 0.67%, 11: 0.45%, 12: 0.27%, 13: 0.18%, 14: 0.11%, 15: 0.08%, 16: 0.05%, 17: 0.03%, 18: 0.02%, 19: 0.01%, 20: 0.01%, 21: 0.00%, 22: 0.00%, 23: 0.00%, 24: 0.00%, 25: 0.00%, 26: 0.00%, 27: 0.00%, 28: 0.00%, 29: 0.00%, 30: 0.00%, 31: 0.00%, 32: 0.00%, 33: 0.00%, 34: 0.00%, 35: 0.00%, 36: 0.00%, 37: 0.00%, 38: 0.00%, 39: 0.00%, 40: 0.00%, 41: 0.00%, 42: 0.00%, 43: 0.00%, 44: 0.00%, 45: 0.00%, 46: 0.00%, 47: 0.00%, 48: 0.00%, 49: 0.00%, 50: 0.00%
-Response: | Success:               | Total:
-OK:       |            0 (  0.00%) |            0 (  0.00%)
-NXDOMAIN: |       484601 ( 48.46%) |       619706 ( 42.66%)
-SERVFAIL: |       515397 ( 51.54%) |       832978 ( 57.34%)
-REFUSED:  |            0 (  0.00%) |            0 (  0.00%)
-FORMERR:  |            2 (  0.00%) |           51 (  0.00%)
+Failures: 0: 22.85%, 1: 24.89%, 2: 16.71%, 3: 11.93%, 4: 7.91%, 5: 5.29%, 6: 3.52%, 7: 2.36%, 8: 1.59%, 9: 1.05%, 10: 0.67%, 11: 0.45%, 12: 0.27%, 13: 0.18%, 14: 0.11%, 15: 0.08%, 16: 0.05%, 17: 0.03%, 18: 0.02%, 19: 0.01%, 20: 0.01%, 21: 0.00%, 22: 0.00% [...]
 ```
-
 
 ### Results
 
 Times:
+
 - Random 10 resolvers: 137 seconds
 - Fastest 10 resolvers: 49 seconds
 
 137/49 = 2.7959183673 ~= 2.8
 
-This means that massdns is 2.8 times faster when using the fastest DNS resolvers vs using randomly selected resolvers. 
+- This means that massdns is 2.8 times faster when using the fastest DNS resolvers vs using randomly selected resolvers. 
+- The first requests was successfull 52.80% of the time using the fastest and most reliable resolvers while it was only successful 22.85% of the time when using random resolvers.
+- The number of mismatched domains is 13.8 times greater when using non random resolvers.
 
-Therefore, testing your resolvers and selecting the fastest ones can significantly increase your tools.
+### Conclusion
 
+Using the fastest and most reliable resolvers significantly increased the speed and efficiency of massdns. Therefore showing it is important to do so.
 
-### Additional test notes:
+### Additional test notes
 
-- Each test had 1,000,000 DNS queries 
+- Each test had 1,000,000 DNS queries
 - The list of dns queries was using randomly generated sudomain values in order to stop the local DNS server from caching the responses. To generate the subdomains we used the python script below:
-```python3
+
+```python
 import uuid
 
 base_domain = "fyx.me"
@@ -184,12 +180,11 @@ number_of_domains = int(1e6) # 1 million
 for i in range(number_of_domains):
     print("{}.{}".format(uuid.uuid4().hex,base_domain))
 ```
+
 and ran it as follows `python generate_domains.py > domains.txt`
 
 - We picked random resolvers from the list of working dns resolvers by running `shuf -n N working-resolvers.txt > resolvers.txt` where N is the number of resolvers requested
 - To get the best resolvers we used this command `head -n N working-resolvers.txt > resolvers.txt` where N is the number of resolvers requested
-
-
 
 # Limitations
 
