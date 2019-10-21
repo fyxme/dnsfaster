@@ -19,7 +19,7 @@ output file: out
 input file: test-input/10.txt
 ```
 
-full command: `./dnsfaster test-input/10.txt 100 100 "example.com" out` 
+full command: `./dnsfaster -in=test-input/10.txt -workers=100 -tests=100 -domain="example.com" -out=out` 
 
 [![asciicast](https://asciinema.org/a/t40ORqxZz5KCB6YXOw8A7H8i9.svg)](https://asciinema.org/a/t40ORqxZz5KCB6YXOw8A7H8i9)
 
